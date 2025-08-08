@@ -1,0 +1,78 @@
+import cv2
+import os
+
+def extract_frames_opencv(video_path, output_folder, target_fps=5):
+    """
+    Extracts frames from a video at a specified frame rate.
+
+    Args:
+        video_path (str): The path to the input video file.
+        output_folder (str): The path to the folder where frames will be saved.
+        target_fps (int): The number of frames to extract per second.
+    """
+    try:
+        # Check if the video file exists
+        if not os.path.exists(video_path):
+            raise FileNotFoundError(f"Video file not found at '{video_path}'.")
+
+        # Create output folder if it doesn't exist
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+            print(f"Created output folder: '{output_folder}'")
+
+        # Capture video
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise Exception("Error opening video file. Check if the file is valid or if the codecs are installed.")
+
+        # Get original video's FPS and calculate frame skip interval
+        original_fps = cap.get(cv2.CAP_PROP_FPS)
+        if original_fps == 0:
+            raise Exception("Could not retrieve original FPS. The video file may be corrupted.")
+
+        frame_skip_interval = int(round(original_fps / target_fps))
+        if frame_skip_interval < 1:
+            frame_skip_interval = 1
+            print(f"Warning: Target FPS ({target_fps}) is higher than original FPS ({original_fps}). "
+                  f"Extracting every frame.")
+
+        frame_count = 0
+        extracted_frame_count = 0
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Process a frame only if it's at the calculated interval
+            if frame_count % frame_skip_interval == 0:
+                # Saving each frame as a JPEG image file
+                frame_filename = os.path.join(
+                    output_folder, f"frame_{extracted_frame_count:04d}.jpg"
+                )
+                cv2.imwrite(frame_filename, frame)
+                extracted_frame_count += 1
+
+            frame_count += 1
+
+        cap.release()
+        print(
+            f"Extraction complete. {extracted_frame_count} frames extracted at {target_fps} FPS to '{output_folder}'."
+        )
+        print(f"Total frames in video: {frame_count}")
+
+    except FileNotFoundError as e:
+        print(f"File Error: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+# Example usage for a GitHub repository:
+# Note: These paths are relative and for demonstration. Users will need to adjust them.
+# The video 'sample_video.mp4' would be in the root of the repository.
+# The frames will be saved to a folder named 'extracted_frames'.
+current_dir = os.path.dirname(os.path.abspath(__file__))
+video_filename = "sample_video.mp4"
+video_path = os.path.join(current_dir, "sample_videos", video_filename)
+output_folder = os.path.join(current_dir, "extracted_frames")
+
+# Call the function with a target FPS of 5
+extract_frames_opencv(video_path, output_folder, target_fps=5)
